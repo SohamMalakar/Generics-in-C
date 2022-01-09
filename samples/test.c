@@ -1,4 +1,4 @@
-#include <cio.h>
+#include <stdio.h>
 
 template <typename T>
 T myMax(T x, T y)
@@ -16,13 +16,13 @@ struct list
 int main()
 {
     // Call myMax for int
-    print("%d\n", myMax<int>(3, 7));
+    printf("%d\n", myMax<int>(3, 7));
 
     // call myMax for double
-    print("%lf\n", myMax<double>(3.0, 7.0));
+    printf("%lf\n", myMax<double>(3.0, 7.0));
 
     // call myMax for char
-    print("%c\n", myMax<char>('g', 'e'));
+    printf("%c\n", myMax<char>('g', 'e'));
 
     // declare a list of int
     list<int> *l = NULL;
