@@ -1,439 +1,452 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <string>
+#include <unordered_set>
 #include <vector>
+
+using namespace std;
 
 struct Template
 {
-    std::string name;
-    std::string category;
-    std::vector<std::string> types;
-    std::vector<std::string> content;
-
-    Template(std::string name, std::vector<std::string> types, std::vector<std::string> content)
-        : name(name), types(types), content(content)
-    {
-        category = name;
-    }
-
-    Template()
-    {
-    }
+    string name;
+    vector<string> types;
+    vector<string> content;
 };
 
-bool validate(std::vector<std::string> &matches, std::string str, std::regex reg, bool store)
+struct Generated
 {
-    bool is_any_match = false;
+    string name;
+    string template_name;
+    vector<string> types;
+    vector<string> content;
+};
 
-    std::sregex_iterator currentMatch(str.begin(), str.end(), reg);
+bool reg_match(vector<string> &matches, string str, regex reg)
+{
+    bool is_match = false;
 
-    std::sregex_iterator lastMatch;
+    sregex_iterator current_match(str.begin(), str.end(), reg);
+    sregex_iterator last_match;
 
-    while (currentMatch != lastMatch)
+    while (current_match != last_match)
     {
-        is_any_match = true;
-        std::smatch match = *currentMatch;
-
-        if (store)
-            matches.push_back(match.str());
-
-        currentMatch++;
+        smatch match = *current_match;
+        matches.push_back(match.str());
+        is_match = true;
+        current_match++;
     }
 
-    return is_any_match;
+    return is_match;
 }
 
-bool validate(std::string str, std::regex reg)
-{
-    std::vector<std::string> matches;
-    return validate(matches, str, reg, false);
-}
-
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
     if (argc != 2)
     {
-        std::cout << "Usage: " << argv[0] << " <file>" << std::endl;
+        cout << "Usage: " << argv[0] << " <file>" << '\n';
         return 1;
     }
 
-    std::ifstream file;
+    ifstream file;
 
-    file.open(argv[1], std::ios_base::binary);
+    file.open(argv[1], ios_base::binary);
 
     if (!file.is_open())
     {
-        std::cout << "Could not open file " << argv[1] << std::endl;
+        cout << "Could not open file " << argv[1] << '\n';
         return 1;
     }
 
-    std::string name(argv[1]);
-    std::string tmp = name.substr(0, name.find_last_of(".")) + "_gen.c";
-    std::cout << "New file name: " << tmp << std::endl;
+    string name(argv[1]);
+    string tmp = name.substr(0, name.find_last_of(".")) + "_gen.c";
 
-    std::string line;
-    std::vector<std::string> lines;
+    string line;
+    vector<string> lines;
 
-    while (std::getline(file, line))
-    {
+    while (getline(file, line))
         lines.push_back(line);
-    }
 
     file.close();
 
-    std::regex templ("template[ ]*<(.*)>");
-    std::regex func_def("([\\w_]+)\\((.*?)\\)");
-    std::regex func_call("([\\w_]+)<(.*?)>\\((.*?)\\)");
-    std::regex struct_def("struct[ ]*([\\w_]+)");
-    std::regex struct_decl("([\\w_]+)<(.*)>[ ]*");
+    regex templ("template[ ]*<(.*?)>");
+    regex func_def("([\\w_]+)\\((.*?)\\)");
+    regex func_call("([\\w_]+)<(.*?)>\\((.*?)\\)");
+    regex struct_def("struct[ ]*([\\w_]+)");
+    regex struct_decl("([\\w_]+)<(.*?)>[ ]*");
 
+    // Find templates
+    vector<Template> templates;
+    Template tmpl;
     bool is_template = false;
-
-    std::vector<std::string> types;
-    std::vector<std::string> template_args;
-
-    std::vector<Template> templates;
-
-    int count = 0;
     bool atleast_one_brace = false;
     bool name_found = false;
-    std::string template_name;
+    int count = 0;
 
-    int line_num = 1;
-
-    for (auto line : lines)
+    for (auto l : lines)
     {
+        smatch match;
+
         if (is_template)
         {
-            template_args.push_back(line);
-
-            if (!name_found && (validate(line, func_def) || validate(line, struct_def)))
+            if (!name_found && (regex_search(l, match, func_def) || regex_search(l, match, struct_def)))
             {
+                tmpl.name = match[1];
                 name_found = true;
-
-                std::smatch match;
-
-                if (validate(line, func_def))
-                    std::regex_search(line, match, func_def);
-                else
-                    std::regex_search(line, match, struct_def);
-
-                template_name = match[1];
             }
 
-            if (line.find("{") != std::string::npos)
-            {
-                count++;
+            tmpl.content.push_back(l);
+
+            if (l.find("{") != string::npos)
                 atleast_one_brace = true;
-            }
 
-            if (line.find("}") != std::string::npos)
-            {
-                count--;
-            }
+            count += std::count(l.begin(), l.end(), '{') - std::count(l.begin(), l.end(), '}');
 
-            if (template_args.size() != 0 && count == 0 && atleast_one_brace)
+            if (count == 0 && atleast_one_brace)
             {
+                templates.push_back(tmpl);
                 is_template = false;
-
-                Template tmp(template_name, types, template_args);
-                templates.push_back(tmp);
-
-                template_args.clear();
-                types.clear();
-                count = 0;
                 atleast_one_brace = false;
                 name_found = false;
+
+                tmpl.types.clear();
+                tmpl.content.clear();
             }
         }
-        else if (validate(line, templ))
+        else if (regex_search(l, match, templ))
         {
             is_template = true;
 
-            std::smatch match;
-            std::regex_search(line, match, templ);
-
-            std::string args = match[1];
-
-            std::regex typename_regex("typename[ ]*");
-            args = std::regex_replace(args, typename_regex, "");
-
-            std::regex whitespace_regex("[ ]+");
-            args = std::regex_replace(args, whitespace_regex, "");
+            string args = match[1];
+            args = regex_replace(args, regex("typename[ ]*"), "");
+            args = regex_replace(args, regex("[ ]*"), "");
 
             std::string str = "";
 
-            for (auto &c : args)
+            for (auto c : args)
             {
                 if (c != ',')
                     str += c;
                 else
                 {
-                    types.push_back(str);
+                    tmpl.types.push_back(str);
                     str = "";
                 }
             }
 
-            types.push_back(str);
-        }
-
-        line_num++;
-    }
-
-    line_num = 1;
-
-    std::vector<Template> generated_lines;
-
-    for (auto &line : lines)
-    {
-        std::vector<std::string> matches;
-
-        if (validate(matches, line, func_call, true))
-        {
-            for (auto match : matches)
-            {
-                std::smatch tmp_match;
-                std::regex_search(match, tmp_match, func_call);
-
-                std::string func_name = tmp_match[1];
-                std::string func_types = tmp_match[2];
-                std::string func_args = tmp_match[3];
-
-                std::vector<std::string> func_type_args;
-                std::string str = "";
-
-                for (auto &c : func_types)
-                {
-                    if (c != ',')
-                        str += c;
-                    else
-                    {
-                        func_type_args.push_back(str);
-                        str = "";
-                    }
-                }
-
-                func_type_args.push_back(str);
-
-                Template tmp;
-                bool found = false;
-
-                for (auto template_ : templates)
-                {
-                    if (template_.name == func_name)
-                    {
-                        tmp = template_;
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                {
-                    std::cout << "Error: Line " << line_num << ": "
-                              << "Could not find template for function " << func_name << std::endl;
-                    return 1;
-                }
-
-                int i = 0;
-
-                for (auto &type : tmp.types)
-                {
-                    std::regex type_regex("\\b" + type + "\\b");
-
-                    for (auto &l : tmp.content)
-                        l = std::regex_replace(l, type_regex, func_type_args[i]);
-
-                    i++;
-                }
-
-                std::string new_func_name = func_name + "_" + func_types;
-
-                std::regex whitespace_regex("[ ]+");
-                new_func_name = std::regex_replace(new_func_name, whitespace_regex, "");
-
-                std::regex comma_regex(",");
-                new_func_name = std::regex_replace(new_func_name, comma_regex, "");
-
-                tmp.name = new_func_name;
-
-                std::string new_tmp_name = tmp.name + "(" + func_args + ")";
-
-                line = std::regex_replace(
-                    line, std::regex(func_name + "<" + func_types + ">" + "\\(" + func_args + "\\)"), new_tmp_name);
-
-                for (auto &l : tmp.content)
-                    l = std::regex_replace(l, std::regex("\\b" + func_name + "\\b"), tmp.name);
-
-                tmp.category = func_name;
-                generated_lines.push_back(tmp);
-            }
-        }
-        else if (validate(matches, line, struct_decl, true))
-        {
-            for (auto match : matches)
-            {
-                std::smatch tmp_match;
-                std::regex_search(match, tmp_match, struct_decl);
-
-                std::string struct_name = tmp_match[1];
-                std::string struct_types = tmp_match[2];
-
-                std::vector<std::string> struct_type_args;
-                std::string str = "";
-
-                for (auto &c : struct_types)
-                {
-                    if (c != ',')
-                        str += c;
-                    else
-                    {
-                        struct_type_args.push_back(str);
-                        str = "";
-                    }
-                }
-
-                struct_type_args.push_back(str);
-
-                Template tmp;
-                bool found = false;
-
-                for (auto template_ : templates)
-                {
-                    if (template_.name == struct_name)
-                    {
-                        tmp = template_;
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                {
-                    std::cout << "Error: Line " << line_num << ": "
-                              << "Could not find template for function " << struct_name << std::endl;
-                    return 1;
-                }
-
-                int i = 0;
-
-                for (auto &type : tmp.types)
-                {
-                    std::regex type_regex("\\b" + type + "\\b");
-
-                    for (auto &l : tmp.content)
-                        l = std::regex_replace(l, type_regex, struct_type_args[i]);
-
-                    i++;
-                }
-
-                std::string new_struct_name = struct_name + "_" + struct_types;
-
-                std::regex whitespace_regex("[ ]+");
-                new_struct_name = std::regex_replace(new_struct_name, whitespace_regex, "");
-
-                std::regex comma_regex(",");
-                new_struct_name = std::regex_replace(new_struct_name, comma_regex, "");
-
-                line = std::regex_replace(line, std::regex(struct_name + "<" + struct_types + ">"),
-                                          "struct " + new_struct_name);
-                tmp.name = new_struct_name;
-
-                for (auto &l : tmp.content)
-                    l = std::regex_replace(l, std::regex("\\b" + struct_name + "\\b"), tmp.name);
-
-                tmp.category = struct_name;
-                generated_lines.push_back(tmp);
-            }
-        }
-
-        matches.clear();
-
-        line_num++;
-    }
-
-    for (auto t : generated_lines)
-    {
-        std::cout << "Template: " << t.name << std::endl;
-        std::cout << "Types: ";
-
-        for (auto type : t.types)
-        {
-            std::cout << type << " ";
-        }
-
-        std::cout << std::endl;
-
-        for (auto line : t.content)
-        {
-            std::cout << line << std::endl;
+            tmpl.types.push_back(str);
         }
     }
 
-    std::cout << "Done!" << std::endl;
-
-    std::cout << "Writing to file..." << std::endl;
-
-    int i = 0;
-    int j = 0;
-
-    count = 0;
-    atleast_one_brace = false;
+    vector<Generated> gens;
+    bool has_generate;
 
     is_template = false;
+    atleast_one_brace = false;
+    count = 0;
 
-    std::ofstream outfile;
-    outfile.open(tmp);
+    vector<string> new_lines;
+    unordered_set<string> generated_names;
 
-    for (auto line : lines)
+    do
     {
-        if (validate(line, templ))
-        {
-            is_template = true;
-            i++;
-        }
+        has_generate = false;
 
-        if (is_template && line.find("{") != std::string::npos)
+        for (auto &l : lines)
         {
-            count++;
-            atleast_one_brace = true;
-        }
+            vector<string> matches;
 
-        if (is_template && line.find("}") != std::string::npos)
-        {
-            count--;
-        }
+            // Skip the templates
+            if (regex_search(l, templ))
+                is_template = true;
 
-        if (is_template && count == 0 && atleast_one_brace)
-        {
-            atleast_one_brace = false;
-            i++;
-
-            for (auto t : generated_lines)
+            if (is_template)
             {
-                if (t.category == templates[j].category)
-                {
-                    for (auto line : t.content)
-                    {
-                        outfile << line << std::endl;
-                    }
+                if (l.find("{") != string::npos)
+                    atleast_one_brace = true;
 
-                    outfile << std::endl;
+                count += std::count(l.begin(), l.end(), '{') - std::count(l.begin(), l.end(), '}');
+
+                if (count == 0 && atleast_one_brace)
+                {
+                    is_template = false;
+                    atleast_one_brace = false;
                 }
+
+                continue;
             }
 
-            j++;
-            is_template = false;
-            continue;
+            if (reg_match(matches, l, func_call))
+            {
+                has_generate = true;
+
+                // Replace the function call with the C style function call
+                // e.g. foo<int, char>() -> foo_int_char()
+                // And add the generated function to the list of generated functions
+                // Do not generate the function if it is already in the list
+
+                for (auto match : matches)
+                {
+                    smatch sm;
+                    regex_search(match, sm, func_call);
+
+                    string func_name = sm[1];
+                    string func_types = sm[2];
+                    string func_args = sm[3];
+
+                    vector<string> func_type_list;
+                    string func_type_str = "";
+
+                    for (auto c : func_types)
+                    {
+                        if (c != ',')
+                            func_type_str += c;
+                        else
+                        {
+                            func_type_list.push_back(func_type_str);
+                            func_type_str = "";
+                        }
+                    }
+
+                    func_type_list.push_back(func_type_str);
+
+                    bool has_found = false;
+                    Generated gen;
+
+                    for (auto t : templates)
+                    {
+                        if (t.name == func_name)
+                        {
+                            has_found = true;
+
+                            gen.name = func_name;
+                            gen.template_name = func_name;
+                            gen.content = t.content;
+                            gen.types = t.types;
+                            break;
+                        }
+                    }
+
+                    if (!has_found)
+                    {
+                        cout << "Could not find template for function " << func_name << '\n';
+                        return 1;
+                    }
+
+                    int i = 0;
+
+                    for (auto &type : gen.types)
+                    {
+                        for (auto &l : gen.content)
+                            l = regex_replace(l, regex("\\b" + type + "\\b"), func_type_list[i]);
+                        i++;
+                    }
+
+                    string new_func_name = func_name + "_" + func_types;
+
+                    new_func_name = regex_replace(new_func_name, regex("[ ]*"), "");
+                    new_func_name = regex_replace(new_func_name, regex(","), "");
+
+                    gen.name = new_func_name;
+
+                    l = regex_replace(l, regex(func_name + "<" + func_types + ">" + "\\(" + func_args + "\\)"),
+                                      new_func_name + "(" + func_args + ")");
+
+                    for (auto &li : gen.content)
+                        li = regex_replace(li, regex("\\b" + func_name + "\\b"), new_func_name);
+
+                    bool already_exists = false;
+
+                    // Check if the function is already generated in the previous iteration
+                    for (auto g : gens)
+                        generated_names.insert(g.name);
+
+                    already_exists = generated_names.find(new_func_name) != generated_names.end();
+
+                    if (!already_exists)
+                        gens.push_back(gen);
+                }
+
+                matches.clear();
+            }
+
+            if (reg_match(matches, l, struct_decl))
+            {
+                has_generate = true;
+
+                // Replace the struct declaration with the C style struct declaration
+                // e.g. foo<int, char> -> foo_int_char
+                // And add the generated struct to the list of generated structs
+                // Do not generate structs that are already defined
+
+                for (auto match : matches)
+                {
+                    smatch sm;
+                    regex_search(match, sm, struct_decl);
+
+                    string struct_name = sm[1];
+                    string struct_types = sm[2];
+
+                    vector<string> struct_type_list;
+                    string struct_type_str = "";
+
+                    for (auto c : struct_types)
+                    {
+                        if (c != ',')
+                            struct_type_str += c;
+                        else
+                        {
+                            struct_type_list.push_back(struct_type_str);
+                            struct_type_str = "";
+                        }
+                    }
+
+                    struct_type_list.push_back(struct_type_str);
+
+                    bool has_found = false;
+                    Generated gen;
+
+                    for (auto t : templates)
+                    {
+                        if (t.name == struct_name)
+                        {
+                            has_found = true;
+
+                            gen.name = struct_name;
+                            gen.template_name = struct_name;
+                            gen.content = t.content;
+                            gen.types = t.types;
+                            break;
+                        }
+                    }
+
+                    if (!has_found)
+                    {
+                        cout << "Could not find template for structure " << struct_name << '\n';
+                        return 1;
+                    }
+
+                    int i = 0;
+
+                    for (auto &type : gen.types)
+                    {
+                        for (auto &l : gen.content)
+                            l = regex_replace(l, regex("\\b" + type + "\\b"), struct_type_list[i]);
+                        i++;
+                    }
+
+                    string new_struct_name = struct_name + "_" + struct_types;
+
+                    new_struct_name = regex_replace(new_struct_name, regex("[ ]*"), "");
+                    new_struct_name = regex_replace(new_struct_name, regex(","), "");
+
+                    gen.name = new_struct_name;
+
+                    l = regex_replace(l, regex(struct_name + "<" + struct_types + ">"), "struct " + new_struct_name);
+
+                    for (auto &li : gen.content)
+                        li = regex_replace(li, regex("\\b" + struct_name + "\\b"), new_struct_name);
+
+                    bool already_exists = false;
+
+                    // Check if the structure is already generated in the previous iteration
+                    for (auto g : gens)
+                        generated_names.insert(g.name);
+
+                    already_exists = generated_names.find(new_struct_name) != generated_names.end();
+
+                    if (!already_exists)
+                        gens.push_back(gen);
+                }
+
+                matches.clear();
+            }
         }
 
-        if (i % 2 == 0)
-            outfile << line << std::endl;
+        string tmpl_name;
+
+        // Add the generated functions and structs to the lines
+        for (auto l : lines)
+        {
+            if (is_template)
+            {
+                smatch match;
+
+                if (!name_found && (regex_search(l, match, func_def) || regex_search(l, match, struct_def)))
+                {
+                    tmpl_name = match[1];
+                    name_found = true;
+                }
+
+                if (l.find("{") != string::npos)
+                    atleast_one_brace = true;
+
+                count += std::count(l.begin(), l.end(), '{') - std::count(l.begin(), l.end(), '}');
+
+                if (count == 0 && atleast_one_brace)
+                {
+                    is_template = false;
+                    atleast_one_brace = false;
+                    name_found = false;
+
+                    new_lines.push_back(l);
+
+                    // Add the generated functions and structs to the lines
+                    for (auto g : gens)
+                        if (g.template_name == tmpl_name)
+                            for (auto ln : g.content)
+                                new_lines.push_back(ln);
+
+                    continue;
+                }
+            }
+            else if (regex_search(l, templ))
+                is_template = true;
+
+            new_lines.push_back(l);
+        }
+
+        lines.clear();
+        lines = new_lines;
+        new_lines.clear();
+        gens.clear();
+
+    } while (has_generate);
+
+    // Remove templates
+    for (auto l : lines)
+    {
+        if (is_template)
+        {
+            if (l.find("{") != string::npos)
+                atleast_one_brace = true;
+
+            count += std::count(l.begin(), l.end(), '{') - std::count(l.begin(), l.end(), '}');
+
+            if (count == 0 && atleast_one_brace)
+            {
+                is_template = false;
+                atleast_one_brace = false;
+            }
+        }
+        else if (regex_search(l, templ))
+            is_template = true;
+        else
+            new_lines.push_back(l);
     }
 
-    outfile.close();
+    lines.clear();
+    lines = new_lines;
+    new_lines.clear();
 
-    // std::cin.get();
+    ofstream out_file(tmp);
+
+    // Write the lines to the generated file
+    for (auto l : lines)
+        out_file << l << '\n';
+
+    out_file.close();
+
     return 0;
 }
