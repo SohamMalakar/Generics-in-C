@@ -133,6 +133,10 @@ int main()
 
 So, it's clear that the generated code is valid C code.
 
+## Samples
+
+There are some examples in the [samples](https://github.com/SohamMalakar/Generics-in-C/tree/master/samples) folder.
+
 ## Contribution
 
 If you want to contribute, please feel free to open an [issue](https://github.com/SohamMalakar/Generics-in-C/issues) or [pull request](https://github.com/SohamMalakar/Generics-in-C/pulls).
