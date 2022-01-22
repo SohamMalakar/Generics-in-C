@@ -1,18 +1,18 @@
-# About
+## About
 
 It's a custom preprocessor for the C programming language. It allows you to write generic codes.
 
-# Why you should use it?
+## Why you should use it?
 
 In programming, we often need to create data structures or functions that are generic. But in C, it simply doesn't support generics. So instead, we can use this custom preprocessor to add generics to C.
 
-# Working
+## Working
 
 It generates valid C code from the custom style of C code. Its syntax is very similar to C++ but not very flexible. So, you should write your code very carefully to ensure that it doesn't break.
 
-# Usage
+## Usage
 
-## GNU/Linux:
+### GNU/Linux:
 
 To build the preprocessor, you can use the following commands:
 
@@ -25,7 +25,7 @@ $ ./generics samples/test.c
 
 > **_NOTE:_** Make sure you have the latest g++ compiler and git installed in your system.
 
-## Windows:
+### Windows:
 
 You don't need to build the preprocessor in Windows. Just download the preprocessor from the [release page]("#") and run it.
 
@@ -35,7 +35,7 @@ To run the preprocessor, you can use the following commands:
 > generics.exe your_file.c
 ```
 
-### Building the preprocessor for Windows (Not required):
+#### Building the preprocessor for Windows (Not required):
 
 If you want to build the preprocessor, follow the instructions below:
 
@@ -46,7 +46,7 @@ If you want to build the preprocessor, follow the instructions below:
 
 > **_NOTE:_** Make sure you have the latest [g++](https://winlibs.com/) compiler installed in your system.
 
-# Syntax (Similar to C++)
+## Syntax (Similar to C++)
 
 It is a custom preprocessor similar to C++. The syntax is not very flexible but pretty easy to write.
 
@@ -133,6 +133,6 @@ int main()
 
 So, it's clear that the generated code is valid C code.
 
-# Contribution
+## Contribution
 
 If you want to contribute, please feel free to open an [issue](https://github.com/SohamMalakar/Generics-in-C/issues) or [pull request](https://github.com/SohamMalakar/Generics-in-C/pulls).
