@@ -27,7 +27,7 @@ $ ./generics samples/test.c
 
 ### Windows:
 
-You don't need to build the preprocessor in Windows. Just download the preprocessor from the [release page]("#") and run it.
+You don't need to build the preprocessor in Windows. Just download the preprocessor from the [release page](https://github.com/SohamMalakar/Generics-in-C/releases) and run it.
 
 To run the preprocessor, you can use the following commands:
 
