@@ -55,7 +55,7 @@ If you want to build the preprocessor, follow the instructions below:
 
 It is a custom preprocessor similar to C++. The syntax is not very flexible but pretty easy to write.
 
-```c
+```cpp
 #include <stdio.h>
 
 template <typename T>
