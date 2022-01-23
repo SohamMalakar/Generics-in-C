@@ -20,6 +20,11 @@ To build the preprocessor, you can use the following commands:
 $ git clone https://github.com/SohamMalakar/Generics-in-C.git
 $ cd Generics-in-C
 $ make
+```
+
+Now, use this command to run the preprocessor on the provided sample:
+
+```
 $ ./generics samples/test.c
 ```
 
