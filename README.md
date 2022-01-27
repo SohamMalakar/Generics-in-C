@@ -4,7 +4,7 @@ It's a custom preprocessor for the C programming language. It allows you to writ
 
 ## Why you should use it?
 
-In programming, we often need to create data structures or functions that are generic. But in C, it simply doesn't support generics. So instead, we can use this custom preprocessor to add generics to C.
+In programming, we often need to create data structures or functions that are generic. But in C, it's not supported at all. So instead, we can use this custom preprocessor to add generics to C.
 
 ## Working
 
