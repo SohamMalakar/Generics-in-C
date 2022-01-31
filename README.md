@@ -8,7 +8,7 @@ In programming, we often need to create data structures or functions that are ge
 
 ## Working
 
-It generates valid C code from the custom style of C code. Its syntax is very similar to C++ but not very flexible. So, you should write your code very carefully to ensure that it doesn't break.
+It generates valid C code from the custom syntax. Its syntax is very similar to C++ but not very flexible. So, you should write your code very carefully to ensure that it doesn't break.
 
 ## Usage
 
@@ -28,17 +28,24 @@ Now, use this command to run the preprocessor on the provided sample:
 $ ./generics samples/test.c
 ```
 
-> **_NOTE:_** Make sure you have the latest g++ compiler and git installed in your system.
+> **_NOTE:_** Make sure you have git, g++ and make installed in your system.
 
 ### Windows:
 
-You don't need to build the preprocessor in Windows. Just download the preprocessor from the [release page](https://github.com/SohamMalakar/Generics-in-C/releases) and run it.
+You don't need to compile the preprocessor on Windows. It's already compiled and ready to use.
 
-To run the preprocessor, you can use the following commands:
+Follow the instructions below to run the preprocessor:
+
+1. Download the preprocessor from the [release](https://github.com/SohamMalakar/Generics-in-C/releases/latest) page.
+2. Extract the file. (You can use [7-Zip](https://www.7-zip.org/) to extract.)
+3. Open the command prompt in the extracted folder.
+4. Run the following command:
 
 ```
-> generics.exe your_file.c
+> generics.exe [FILENAME]
 ```
+
+Here, [FILENAME] refers to the name of the file you want to run the preprocessor on.
 
 #### Building the preprocessor for Windows (Not required):
 
@@ -53,7 +60,7 @@ If you want to build the preprocessor, follow the instructions below:
 
 ## Syntax (Similar to C++)
 
-It is a custom preprocessor similar to C++. The syntax is not very flexible but pretty easy to write.
+The syntax of the preprocessor is very similar to C++.
 
 ```cpp
 #include <stdio.h>
@@ -136,7 +143,7 @@ int main()
 }
 ```
 
-So, it's clear that the generated code is valid C code.
+So clearly, the generated code is valid C code.
 
 ## Samples
 
