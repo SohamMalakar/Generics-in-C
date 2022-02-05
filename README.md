@@ -41,9 +41,9 @@ Follow the instructions below to run the preprocessor:
 3. Open the command prompt in the extracted folder.
 4. Run the following command:
 
-```
-> generics.exe [FILENAME]
-```
+   ```
+   > generics.exe [FILENAME]
+   ```
 
 Here, [FILENAME] refers to the name of the file you want to run the preprocessor on.
 
